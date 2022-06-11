@@ -1,135 +1,120 @@
-#define _USE_MATH_DEFINES
-#include <iostream>
-#include <vector>
-#include <cmath>
 #include "geometry.h"
+#include <cmath>
 
-using namespace std;
-
-Point::Point() {
-	this->x = 0;
-	this->y = 0;
+double Dot::getX() const {
+    return this->x_;
 }
 
-Point::Point(float first, float second) {
-	this->x = first;
-	this->y = second;
+double Dot::getY() const {
+    return this->y_;
 }
 
-Point::Point(const Point& dot) : x(dot.x), y(dot.y) {}
-
-float Point::getX() const {
-	return this->x;
+Dot& Dot::operator=(const Dot& other) {
+    if (&other == this) {
+        return *this;
+    }
+    x_ = other.x_;
+    y_ = other.y_;
+    return *this;
 }
 
-float Point::getY() const {
-	return this->y;
+Polyline& Polyline::operator=(const Polyline& other) {
+    if (&other == this) {
+        return *this;
+    }
+    dots_ = other.dots_;
+    return *this;
 }
 
-Point& Point::operator= (const Point& dot) {
-	this->x = dot.getX();
-	this->y = dot.getY();
-	return *this;
+const Dot& Polyline::operator[](const size_t index) const {
+    return this->dots_[index % this->dots_.size()];
 }
 
-PolygonalChain::PolygonalChain(const int number = 0, Point* points = nullptr) {
-	for (int i = 0; i < number; i++)
-		this->tops.push_back(points[i]);
+double Polyline::findLength() const {
+    double length = 0;
+    for (int i = 0; i < this->dots_.size () - 1; ++ i) {
+        length += hypot(this->dots_[i + 1].getX () - this->dots_[i].getX (),
+                         this->dots_[i + 1].getY () - this->dots_[i].getY ());
+    }
+    return length;
 }
 
-PolygonalChain::PolygonalChain(const PolygonalChain& chain) : tops(chain.tops) {}
-PolygonalChain& PolygonalChain::operator=(const PolygonalChain& chain) {
-	this->tops = chain.getTops();
-	return *this;
+size_t Polyline::getCountOfVertices() const {
+    return this->dots_.size();
 }
 
-
-int PolygonalChain::getN() const {
-	return this->tops.size();
+void Polyline::addVertice(const Dot& other) {
+    this->dots_.emplace_back(other);
 }
 
-Point PolygonalChain::getPoint(const int index) const {
-	return this->tops[index];
+ClosedPolyline& ClosedPolyline::operator=(const ClosedPolyline& other) {
+    if (&other == this) {
+        return *this;
+    }
+    dots_ = other.dots_;
+    return *this;
 }
 
-vector<Point> PolygonalChain::getTops() const {
-	return this->tops;
+void ClosedPolyline::addVertice (const Dot& other) {
+    this->dots_.back() = other;
+    this->dots_.emplace_back(dots_.front());
 }
 
-double PolygonalChain::segment(const Point p1, const Point p2) const {
-	return sqrt(pow(p1.getX() - p2.getX(), 2.0) + pow(p1.getY() - p2.getY(), 2.0));
+Polygon& Polygon::operator=(const Polygon& other) {
+    if (&other == this) {
+        return *this;
+    }
+    dots_ = other.dots_;
+    return *this;
 }
 
-double PolygonalChain::PolygonalChain::perimeter() const {
-	double p = 0;
-	for (int i = 1; i < getN(); i++)
-		p +=segment(this->tops[i], this->tops[i - 1]);
-
-	return p;
+double Polygon::findPerimeter() const {
+    return this->dots_.findLength();
 }
 
-PolygonalChain::~PolygonalChain() = default;
-
-ClosedPolygonalChain::ClosedPolygonalChain(const int number = 0, Point* points = nullptr) : PolygonalChain(number, points) {}
-
-double ClosedPolygonalChain::perimeter() const {
-	return PolygonalChain::perimeter() + segment(getPoint(0), getPoint(getN() - 1));
+size_t Polygon::getCountOfVertices() const {
+    return this->dots_.getCountOfVertices();
 }
 
-Polygon::Polygon(const int number = 0, Point* points = nullptr) : ClosedPolygonalChain(number, points) {}
-
-double Polygon::area() const {
-	double buf_1 = 0, buf_2 = 0;
-	for (int i = 0; i < getN() - 1; i++) {
-		buf_1 += getPoint(i).getX() * getPoint(i + 1).getY();
-		buf_2 += getPoint(i).getY() * getPoint(i + 1).getX();
-	}
-	buf_1 += getPoint(getN() - 1).getX() * getPoint(0).getY();
-	buf_2 += getPoint(getN() - 1).getY() * getPoint(0).getX();
-
-	return abs(buf_1 - buf_2) / 2;
+double Polygon::findArea() const {
+    double area = 0;
+    for (int i = 0; i < this->dots_.getCountOfVertices() - 1; ++i) {
+        area += 0.5 * (this->dots_[i].getX() * this->dots_[i + 1].getY() - \
+            this->dots_[i + 1].getX() * this->dots_[i].getY());
+    }
+    return fabs(area);
 }
 
-Triangle::Triangle(const int number = 0, Point* points = nullptr) : Polygon(number, points) {}
-
-//fixed without sqrt
-bool Triangle::hasRightAngle() const {
-	double a = pow(getPoint(0).getX() - getPoint(1).getX(), 2.0) + pow(getPoint(0).getY() - getPoint(1).getY(), 2.0);
-	double b = pow(getPoint(0).getX() - getPoint(2).getX(), 2.0) + pow(getPoint(0).getY() - getPoint(2).getY(), 2.0);
-	double c = pow(getPoint(1).getX() - getPoint(2).getX(), 2.0) + pow(getPoint(1).getY() - getPoint(2).getY(), 2.0);
-	//fixed true
-	if (a + b == c || a + c == b || b + c == a)
-		return true;
-
-	return false;
+Triangle& Triangle::operator=(const Triangle& other) {
+    if (&other == this) {
+        return *this;
+    }
+    dots_ = other.dots_;
+    return *this;
 }
 
-Trapezoid::Trapezoid(const int number = 0, Point* points = nullptr) : Polygon(number, points) {}
-
-double Trapezoid::distance(Point p1, Point p2, Point p3) const {
-	Point* buf = new Point[3]{ p1, p2, p3 };
-	Polygon triag(3, buf);
-	return triag.area() * 2 / segment(p2, p3);
+Trapezium& Trapezium::operator=(const Trapezium& other) {
+    if (&other == this) {
+        return *this;
+    }
+    dots_ = other.dots_;
+    return *this;
 }
 
-double Trapezoid::height() const {
-	float x1 = getPoint(0).getX() - getPoint(1).getX();
-	float y1 = getPoint(0).getY() - getPoint(1).getY();
-	float x2 = getPoint(2).getX() - getPoint(3).getX();
-	float y2 = getPoint(2).getY() - getPoint(3).getY();
-
-	if (abs((x1 * x2 + y1 * y2) / (sqrt(pow(x1, 2.0) + pow(y1, 2.0)) * sqrt(pow(x2, 2.0) + pow(y2, 2.0)))) == 1)
-		return distance(getPoint(0), getPoint(2), getPoint(3));
-	else
-		return distance(getPoint(0), getPoint(1), getPoint(2));
+RegularPolygon& RegularPolygon::operator=(const RegularPolygon& other) {
+    if (&other == this) {
+        return *this;
+    }
+    vertices_ = other.vertices_;
+    side_ = other.side_;
+    return *this;
 }
 
-RegularPolygon::RegularPolygon(const int number = 0, Point* points = nullptr) : Polygon(number, points) {}
-
-double RegularPolygon::perimeter() const {
-	return getN() * segment(getPoint(0), getPoint(1));
+double RegularPolygon::findPerimeter() const {
+    return this->vertices_ * this->side_;
 }
 
-double RegularPolygon::area() const {
-	return perimeter() * segment(getPoint(0), getPoint(1)) / (4 * tan(M_PI / getN()));
+double RegularPolygon::findArea() const {
+    double pi = acos (- 1);
+    return this->vertices_ * pow (this->side_, 2) / (4 * tan (180.0 / this->vertices_ * pi / 180.0));
 }
