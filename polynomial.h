@@ -6,24 +6,23 @@
 #include <array>
 #include <cmath>
 
+template<int ...T>
 class PolynomialVector
 {
 private:
-    std::array<int, 3> odds = { 1, 2, 3 };
+    int odds[sizeof...(T)] = { T... };
 
 public:
-    template<typename T>
-    constexpr int Solve(const T x) const
-    {
-        int size = odds.size();
 
+    constexpr int Solve(const int x) const
+    {
         int answer = 0;
 
-        for (int i = 0; i < size; i++)
+        for (int i = 0; i < sizeof...(T); i++)
         {
             int tmp = 1;
 
-            for (int j = i; j < size - 1; j++)
+            for (int j = i; j < sizeof...(T) - 1; j++)
             {
                 tmp *= x;
             }
@@ -34,13 +33,8 @@ public:
         return answer;
     }
 
-    double operator[](int index) const
+    constexpr int operator[](std::size_t index) const
     {
-        int size = odds.size();
-
-        if (index >= size)
-            throw std::invalid_argument("incorrect index!");
-
         return odds[index];
     }
 
@@ -49,16 +43,14 @@ public:
 
     friend std::ostream& operator<<(std::ostream& out, const PolynomialVector& polynomial)
     {
-        int size = polynomial.odds.size();
-
-        for (int i = 0; i < size; i++)
+        for (int i = 0; i < sizeof...(T); i++)
         {
             double thisOdd = polynomial.odds[i];
 
             if (thisOdd == 0)
                 continue;
 
-            if (i == size - 1)
+            if (i == sizeof...(T) - 1)
             {
                 if (thisOdd < 0)
                     out << " - ";
@@ -70,16 +62,16 @@ public:
             else if (i == 0)
             {
                 if (thisOdd > 0)
-                    out << thisOdd << "x^" << size - i - 1;
+                    out << thisOdd << "x^" << sizeof...(T) - i - 1;
                 else
-                    out << " -" << abs(thisOdd) << "x^" << size - i - 1;
+                    out << " -" << abs(thisOdd) << "x^" << sizeof...(T) - i - 1;
             }
             else
             {
                 if (thisOdd > 0)
-                    out << " + " << thisOdd << "x^" << size - i - 1;
+                    out << " + " << thisOdd << "x^" << sizeof...(T) - i - 1;
                 else
-                    out << " - " << abs(thisOdd) << "x^" << size - i - 1;
+                    out << " - " << abs(thisOdd) << "x^" << sizeof...(T) - i - 1;
             }
         }
 
